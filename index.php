@@ -1,0 +1,177 @@
+<?php
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+use Slim\Views\PhpRenderer;
+
+require 'vendor/autoload.php';
+session_start();
+$app = new \Slim\App(['settings' => ['displayErrorDetails' => true]]);
+
+$container = $app->getContainer();
+$container['renderer'] = new PhpRenderer('./templates');
+function DBConnection(){
+	return new PDO('mysql:dbhost=localhost;dbname=primabase', 'root', '');
+}
+
+//MIDDLEWARE
+$middleware = (function ($request, $response, $next) {
+	$loggedIn = $_SESSION['isLoggedIn'];
+    if ($loggedIn != 'yes') {
+        return $response->withRedirect("/formLogin");
+    }
+    $response = $next($request, $response);
+    return $response;
+});
+
+//TEMPLATES
+$app->get('/formLogin', function ($request, $response){
+    return $this->renderer->render($response, '/formLogin.php');
+});
+$app->get('/home', function ($request, $response){
+    return $this->renderer->render($response, '/home.php');
+})->add($middleware);
+$app->get('/formTenant', function ($request, $response){
+    return $this->renderer->render($response, '/formTenant.php');
+})->add($middleware);
+$app->get('/formInsertTenant', function ($request, $response){
+    return $this->renderer->render($response, '/formInsertTenant.php');
+})->add($middleware);
+$app->get('/formUpdateTenant', function ($request, $response){
+    return $this->renderer->render($response, '/formUpdateTenant.php');
+})->add($middleware);
+$app->get('/formLogger', function ($request, $response){
+    return $this->renderer->render($response, '/formLogger.php');
+})->add($middleware);
+$app->get('/formInsertLogger', function ($request, $response){
+    return $this->renderer->render($response, '/formInsertLogger.php');
+})->add($middleware);
+$app->get('/formUpdateLogger', function ($request, $response){
+    return $this->renderer->render($response, '/formUpdateLogger.php');
+})->add($middleware);
+$app->get('/formPos', function ($request, $response){
+    return $this->renderer->render($response, '/formPos.php');
+})->add($middleware);
+$app->get('/formInsertPos', function ($request, $response){
+    return $this->renderer->render($response, '/formInsertPos.php');
+})->add($middleware);
+$app->get('/formUpdatePos', function ($request, $response){
+    return $this->renderer->render($response, '/formUpdatePos.php');
+})->add($middleware);
+
+//LOGIN
+$app->post('/login', function ($request, $response) {
+	$username = $request->getParsedBody()['username'];
+	$password = $request->getParsedBody()['password'];
+    $stmt = (DBConnection()->query("select password from user where username = '".$username."' LIMIT 1")->fetch());
+	$db_pass = $stmt['password'];
+	if($password === $db_pass){
+		$_SESSION['isLoggedIn'] = 'yes';
+        session_regenerate_id();
+        $response = $response->withRedirect("/home");
+		return $response;
+	}
+	else{
+		$message = "Username atau Password Anda Salah !";
+		echo "<script type='text/javascript'>alert('$message');</script>";
+		$this->renderer->render($response, '/formLogin.php');
+	}
+});
+
+//LOGOUT
+$app->get('/logout', function ($request, $response, $args) {
+	unset($_SESSION['isLoggedIn']);
+    session_regenerate_id();
+	$response = $response->withRedirect("/formLogin");
+	return $response;
+});
+
+//CRUD TENANT
+//READ TENANT
+$app->get('/showTenant', function ($request, $response, $args){
+	echo json_encode(DBConnection()->query("select * from tenant")->fetchAll());
+});
+//INSERT TENANT
+$app->post('/insertTenant', function ($request, $response, $args) {
+	$name = $request->getParsedBody()['name'];
+	$addr = $request->getParsedBody()['addr'];
+	DBConnection()->exec("insert into tenant values('".$name."','".$addr."');");
+	$response = $response->withRedirect("/formTenant");
+	return $response;
+});
+//UPDATE TENANT
+$app->map(['PUT', 'POST'],'/updateTenant/{name}', function ($request, $response, $args) {
+	$addr = $request->getParsedBody()['addr'];
+	DBConnection()->exec("update tenant set addr = '".$addr."' where name = '".$args['name']."';");
+	$response = $response->withRedirect("/formTenant");
+	return $response;
+});
+//DELETE TENANT
+$app->map(['DELETE', 'GET'],'/hapusTenant/{name}', function ($request, $response, $args) {
+	DBConnection()->exec("delete from tenant where name = '".$args['name']."';");
+	$response = $response->withRedirect("/formTenant");
+	return $response;
+});
+
+//CRUD LOGGER
+//READ LOGGER
+$app->get('/showLogger', function ($request, $response, $args){
+	echo json_encode(DBConnection()->query("select * from logger")->fetchAll());
+});
+//INSERT LOGGER
+$app->post('/insertLogger', function ($request, $response, $args) {
+	$sn = $request->getParsedBody()['sn'];
+	DBConnection()->exec("insert into logger values('".$sn."');");
+	$response = $response->withRedirect("/formLogger");
+	return $response;
+});
+//UPDATE LOGGER
+$app->map(['PUT', 'POST'],'/updateLogger/{sn}', function ($request, $response, $args) {
+	$sn = $request->getParsedBody()['sn'];
+	DBConnection()->exec("update logger set sn = '".$sn."' where sn = '".$args['sn']."';");
+	$response = $response->withRedirect("/formLogger");
+	return $response;
+});
+//DELETE LOGGER
+$app->map(['DELETE', 'GET'],'/hapusLogger/{sn}', function ($request, $response, $args) {
+	DBConnection()->exec("delete from logger where sn = '".$args['sn']."';");
+	$response = $response->withRedirect("/formLogger");
+	return $response;
+});
+
+//CRUD POS
+//READ POS
+$app->get('/showPos', function ($request, $response, $args){
+	echo json_encode(DBConnection()->query("select * from pos")->fetchAll());
+});
+//INSERT POS
+$app->post('/insertPos', function ($request, $response, $args) {
+	$nama = $request->getParsedBody()['nama'];
+	$lonlat = $request->getParsedBody()['lonlat'];
+	$desa = $request->getParsedBody()['desa'];
+	$kec = $request->getParsedBody()['kec'];
+	$kab = $request->getParsedBody()['kab'];
+	$pengamat = $request->getParsedBody()['pengamat'];
+	DBConnection()->exec("insert into pos values('".$nama."','".$lonlat."','".$desa."','".$kec."','".$kab."','".$pengamat."');");
+	$response = $response->withRedirect("/formPos");
+	return $response;
+});
+//UPDATE POS
+$app->map(['PUT', 'POST'],'/updatePos/{nama}', function ($request, $response, $args) {
+	$lonlat = $request->getParsedBody()['lonlat'];
+	$desa = $request->getParsedBody()['desa'];
+	$kec = $request->getParsedBody()['kec'];
+	$kab = $request->getParsedBody()['kab'];
+	$pengamat = $request->getParsedBody()['pengamat'];
+	DBConnection()->exec("update pos set lonlat = '".$lonlat."',desa = '".$desa."',kec = '".$kec."',kab = '".$kab."',pengamat = '".$pengamat."' where nama = '".$args['nama']."';");
+	$response = $response->withRedirect("/formPos");
+	return $response;
+});
+//DELETE POS
+$app->map(['DELETE', 'GET'],'/hapusPos/{nama}', function ($request, $response, $args) {
+	DBConnection()->exec("delete from pos where nama = '".$args['nama']."';");
+	$response = $response->withRedirect("/formPos");
+	return $response;
+});
+
+$app->run();
+?>
