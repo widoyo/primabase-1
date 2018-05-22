@@ -14,9 +14,17 @@ function DBConnection(){
 }
 
 //MIDDLEWARE
-$middleware = (function ($request, $response, $next) {
+$middleware1 = (function ($request, $response, $next) {
 	$loggedIn = $_SESSION['isLoggedIn'];
-    if ($loggedIn != 'yes') {
+    if ($loggedIn != 'admin') {
+        return $response->withRedirect("/formLogin");
+    }
+    $response = $next($request, $response);
+    return $response;
+});
+$middleware2 = (function ($request, $response, $next) {
+	$loggedIn = $_SESSION['isLoggedIn'];
+    if ($loggedIn != 'user') {
         return $response->withRedirect("/formLogin");
     }
     $response = $next($request, $response);
@@ -29,45 +37,57 @@ $app->get('/formLogin', function ($request, $response){
 });
 $app->get('/home', function ($request, $response){
     return $this->renderer->render($response, '/home.php');
-})->add($middleware);
+})->add($middleware1);
 $app->get('/formTenant', function ($request, $response){
     return $this->renderer->render($response, '/formTenant.php');
-})->add($middleware);
+})->add($middleware1);
 $app->get('/formInsertTenant', function ($request, $response){
     return $this->renderer->render($response, '/formInsertTenant.php');
-})->add($middleware);
+})->add($middleware1);
 $app->get('/formUpdateTenant', function ($request, $response){
     return $this->renderer->render($response, '/formUpdateTenant.php');
-})->add($middleware);
+})->add($middleware1);
 $app->get('/formLogger', function ($request, $response){
     return $this->renderer->render($response, '/formLogger.php');
-})->add($middleware);
+})->add($middleware1);
 $app->get('/formInsertLogger', function ($request, $response){
     return $this->renderer->render($response, '/formInsertLogger.php');
-})->add($middleware);
+})->add($middleware1);
 $app->get('/formUpdateLogger', function ($request, $response){
     return $this->renderer->render($response, '/formUpdateLogger.php');
-})->add($middleware);
+})->add($middleware1);
 $app->get('/formPos', function ($request, $response){
     return $this->renderer->render($response, '/formPos.php');
-})->add($middleware);
+})->add($middleware1);
 $app->get('/formInsertPos', function ($request, $response){
     return $this->renderer->render($response, '/formInsertPos.php');
-})->add($middleware);
+})->add($middleware1);
 $app->get('/formUpdatePos', function ($request, $response){
     return $this->renderer->render($response, '/formUpdatePos.php');
-})->add($middleware);
+})->add($middleware1);
+
+$app->get('/homeUser', function ($request, $response){
+    return $this->renderer->render($response, '/homeUser.php');
+})->add($middleware2);
 
 //LOGIN
 $app->post('/login', function ($request, $response) {
 	$username = $request->getParsedBody()['username'];
 	$password = $request->getParsedBody()['password'];
-    $stmt = (DBConnection()->query("select password from user where username = '".$username."' LIMIT 1")->fetch());
-	$db_pass = $stmt['password'];
-	if($password === $db_pass){
-		$_SESSION['isLoggedIn'] = 'yes';
+    $ps = (DBConnection()->query("select password from user where username = '".$username."' LIMIT 1")->fetch());
+	$ut = (DBConnection()->query("select usertype from user where username = '".$username."' LIMIT 1")->fetch());
+	$db_ps = $ps['password'];
+	$db_ut = $ut['usertype'];
+	if($password === $db_ps && $db_ut === "admin"){
+		$_SESSION['isLoggedIn'] = 'admin';
         session_regenerate_id();
         $response = $response->withRedirect("/home");
+		return $response;
+	}else if($password === $db_ps && $db_ut === "user"){
+		$_SESSION['isLoggedIn'] = 'user';
+		$_SESSION['username'] = $username;
+        session_regenerate_id();
+        $response = $response->withRedirect("/homeUser");
 		return $response;
 	}
 	else{
@@ -80,6 +100,7 @@ $app->post('/login', function ($request, $response) {
 //LOGOUT
 $app->get('/logout', function ($request, $response, $args) {
 	unset($_SESSION['isLoggedIn']);
+	unset($_SESSION['username']);
     session_regenerate_id();
 	$response = $response->withRedirect("/formLogin");
 	return $response;
