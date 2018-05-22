@@ -1,11 +1,11 @@
 <html>
 	<head>
 		<title>
-		Home
+		Home Admin
 		</title>
 	</head>
 	<body>
-		<h1>Home</h1>
+		<h1>Home Admin</h1>
 		1. <a href="/formTenant">CRUD Tenant</a><br/>
 		2. <a href="/formLogger">CRUD Logger</a><br/>
 		3. <a href="/formPos">CRUD Pos</a><br/>
