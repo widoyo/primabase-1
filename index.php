@@ -16,78 +16,81 @@ function DBConnection(){
 //MIDDLEWARE
 $middleware1 = (function ($request, $response, $next) {
 	$loggedIn = $_SESSION['isLoggedIn'];
-    if ($loggedIn != 'admin') {
-        return $response->withRedirect("/formLogin");
-    }
-    $response = $next($request, $response);
-    return $response;
+	if ($loggedIn != 'admin') {
+		return $response->withRedirect("/formLogin");
+	}
+	$response = $next($request, $response);
+	return $response;
 });
 $middleware2 = (function ($request, $response, $next) {
 	$loggedIn = $_SESSION['isLoggedIn'];
-    if ($loggedIn != 'user') {
-        return $response->withRedirect("/formLogin");
-    }
-    $response = $next($request, $response);
-    return $response;
+	if ($loggedIn != 'user') {
+		return $response->withRedirect("/formLogin");
+	}
+	$response = $next($request, $response);
+	return $response;
 });
 
 //TEMPLATES
 $app->get('/formLogin', function ($request, $response){
-    return $this->renderer->render($response, '/formLogin.php');
+	return $this->renderer->render($response, '/formLogin.php');
 });
 $app->get('/home', function ($request, $response){
-    return $this->renderer->render($response, '/home.php');
+	return $this->renderer->render($response, '/home.php');
 })->add($middleware1);
 $app->get('/formTenant', function ($request, $response){
-    return $this->renderer->render($response, '/formTenant.php');
+	return $this->renderer->render($response, '/formTenant.php');
 })->add($middleware1);
 $app->get('/formInsertTenant', function ($request, $response){
-    return $this->renderer->render($response, '/formInsertTenant.php');
+	return $this->renderer->render($response, '/formInsertTenant.php');
 })->add($middleware1);
 $app->get('/formUpdateTenant', function ($request, $response){
-    return $this->renderer->render($response, '/formUpdateTenant.php');
+	return $this->renderer->render($response, '/formUpdateTenant.php');
 })->add($middleware1);
 $app->get('/formLogger', function ($request, $response){
-    return $this->renderer->render($response, '/formLogger.php');
+	return $this->renderer->render($response, '/formLogger.php');
 })->add($middleware1);
 $app->get('/formInsertLogger', function ($request, $response){
-    return $this->renderer->render($response, '/formInsertLogger.php');
+	return $this->renderer->render($response, '/formInsertLogger.php');
 })->add($middleware1);
 $app->get('/formUpdateLogger', function ($request, $response){
-    return $this->renderer->render($response, '/formUpdateLogger.php');
+	return $this->renderer->render($response, '/formUpdateLogger.php');
 })->add($middleware1);
 $app->get('/formPos', function ($request, $response){
-    return $this->renderer->render($response, '/formPos.php');
+	return $this->renderer->render($response, '/formPos.php');
 })->add($middleware1);
 $app->get('/formInsertPos', function ($request, $response){
-    return $this->renderer->render($response, '/formInsertPos.php');
+	return $this->renderer->render($response, '/formInsertPos.php');
 })->add($middleware1);
 $app->get('/formUpdatePos', function ($request, $response){
-    return $this->renderer->render($response, '/formUpdatePos.php');
+	return $this->renderer->render($response, '/formUpdatePos.php');
+})->add($middleware1);
+$app->get('/formPeriodic', function ($request, $response){
+	return $this->renderer->render($response, '/formPeriodic.php');
 })->add($middleware1);
 
 $app->get('/homeUser', function ($request, $response){
-    return $this->renderer->render($response, '/homeUser.php');
+	return $this->renderer->render($response, '/homeUser.php');
 })->add($middleware2);
 
 //LOGIN
 $app->post('/login', function ($request, $response) {
 	$username = $request->getParsedBody()['username'];
 	$password = $request->getParsedBody()['password'];
-    $ps = (DBConnection()->query("select password from user where username = '".$username."' LIMIT 1")->fetch());
+	$ps = (DBConnection()->query("select password from user where username = '".$username."' LIMIT 1")->fetch());
 	$ut = (DBConnection()->query("select usertype from user where username = '".$username."' LIMIT 1")->fetch());
 	$db_ps = $ps['password'];
 	$db_ut = $ut['usertype'];
 	if($password === $db_ps && $db_ut === "admin"){
 		$_SESSION['isLoggedIn'] = 'admin';
-        session_regenerate_id();
-        $response = $response->withRedirect("/home");
+		session_regenerate_id();
+		$response = $response->withRedirect("/home");
 		return $response;
 	}else if($password === $db_ps && $db_ut === "user"){
 		$_SESSION['isLoggedIn'] = 'user';
 		$_SESSION['username'] = $username;
-        session_regenerate_id();
-        $response = $response->withRedirect("/homeUser");
+		session_regenerate_id();
+		$response = $response->withRedirect("/homeUser");
 		return $response;
 	}
 	else{
@@ -101,7 +104,7 @@ $app->post('/login', function ($request, $response) {
 $app->get('/logout', function ($request, $response, $args) {
 	unset($_SESSION['isLoggedIn']);
 	unset($_SESSION['username']);
-    session_regenerate_id();
+	session_regenerate_id();
 	$response = $response->withRedirect("/formLogin");
 	return $response;
 });
@@ -192,6 +195,12 @@ $app->map(['DELETE', 'GET'],'/hapusPos/{nama}', function ($request, $response, $
 	DBConnection()->exec("delete from pos where nama = '".$args['nama']."';");
 	$response = $response->withRedirect("/formPos");
 	return $response;
+});
+
+//VIEW PERIODIC
+//READ POS
+$app->get('/showPeriodic', function ($request, $response, $args){
+	echo json_encode(DBConnection()->query("select * from periodic order by sampling desc")->fetchAll());
 });
 
 $app->run();
