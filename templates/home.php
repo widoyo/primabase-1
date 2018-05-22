@@ -9,6 +9,7 @@
 		1. <a href="/formTenant">CRUD Tenant</a><br/>
 		2. <a href="/formLogger">CRUD Logger</a><br/>
 		3. <a href="/formPos">CRUD Pos</a><br/>
-		4. <a href="/logout">Logout</a>
+		4. <a href="/formPeriodic">View Periodic</a><br/>
+		5. <a href="/logout">Logout</a>
 	</body>
 </html>
